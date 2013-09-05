@@ -65,8 +65,7 @@ server.on('connect', function (req, socket, head) {
     console.log(opts);
     var destination = net.connect(opts);
     destination.on('connect', function () {
-      socket.write('HTTP/1.1 200 OK\r\n' +
-                   'Proxy-Connection: close\r\n' +
+      socket.write('HTTP/1.1 200 Connection established\r\n' +
                    '\r\n');
       socket.pipe(destination);
       destination.pipe(socket);
@@ -89,7 +88,6 @@ function authenticate (req, fn) {
   var auth = req.headers['proxy-authorization'];
   if (!auth) return false;
   var parsed = basicAuthParser(auth);
-  console.log(parsed);
   if (parsed.scheme != 'Basic') return false;
   if (parsed.username != creds.username) return false;
   if (parsed.password != creds.password) return false;
@@ -107,8 +105,6 @@ function requestAuthorization (socket) {
   // request Basic proxy authorization
   socket.end('HTTP/1.1 407 Proxy Authentication Required\r\n' +
              'Proxy-Authenticate: Basic realm="WallyWorld"\r\n' +
-             'Proxy-Connection: close\r\n' +
-             'Content-Length: 0\r\n' +
              '\r\n');
 
   socket.on('data', console.log);
