@@ -6,6 +6,15 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [
+    "http",
+    "https",
+    "proxy",
+    "connect",
+    "tunnel",
+    "squid",
+    "x-forwarded-for"
+  ],
   "author": "Nathan Rajlich <nathan@tootallnate.net> (http://n8.io/)",
   "license": "MIT",
   "dependencies": {
