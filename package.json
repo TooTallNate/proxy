@@ -1,7 +1,7 @@
 {
   "name": "proxy",
   "version": "0.0.0",
-  "description": "",
+  "description": "An HTTP proxy written with Node.js (think Squid)",
   "main": "proxy.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
