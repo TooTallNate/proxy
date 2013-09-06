@@ -5,7 +5,8 @@
 
 var net = require('net');
 var url = require('url');
-var basicAuthParser = require('basic-auth-parser');
+var http = require('http');
+var assert = require('assert');
 var debug = require('debug')('proxy');
 
 /**
@@ -51,26 +52,22 @@ var hopByHopHeaders = [
 ];
 
 /**
- * Dummy creds...
- */
-
-var creds = {
-  username: 'foo',
-  password: 'bar'
-};
-
-/**
  * HTTP GET/POST/DELETE/PUT, etc. proxy requests.
  */
 
 function onrequest (req, res) {
-  if (authenticate(req)) {
+  authenticate(this, req, function (err, auth) {
+    if (err) {
+      // an error occured during login!
+      res.writeHead(500);
+      res.end();
+      return;
+    }
+    if (!auth) return requestAuthorization(req, res);;
     var parsed = url.parse(req.url);
     console.log(req.method, req.url, req.headers);
     console.log(parsed);
-  } else {
-    requestAuthorization(socket);
-  }
+  });
 }
 
 /**
@@ -78,42 +75,69 @@ function onrequest (req, res) {
  */
 
 function onconnect (req, socket, head) {
-  if (authenticate(req)) {
+  assert(!head || 0 == head.length, '"head" should be empty for proxy requests');
+
+  // create the `res` instance for this request since Node.js
+  // doesn't provide us with one :(
+  // XXX: this is undocumented API, so it will likely break some day...
+  var res = new http.ServerResponse(req);
+  res.shouldKeepAlive = false;
+  res.chunkedEncoding = false;
+  res.useChunkedEncodingByDefault = false;
+  res.assignSocket(socket);
+
+  authenticate(this, req, function (err, auth) {
+    if (err) {
+      // an error occured during login!
+      res.writeHead(500);
+      res.end();
+      return;
+    }
+    if (!auth) return requestAuthorization(req, res);;
+
     var parts = req.url.split(':');
     var host = parts[0];
     var port = +parts[1];
     var opts = { host: host, port: port };
     var destination = net.connect(opts);
     destination.on('connect', function () {
-      socket.write('HTTP/1.1 200 Connection established\r\n' +
-                   '\r\n');
+      var headers = {
+      };
+      res.writeHead(200, 'Connection established', headers);
+
+      // HACK: force a flush of the HTTP header
+      res._send('');
+
+      // relinquish control of the `socket` from the ServerResponse instance
+      res.detachSocket(socket);
+
       socket.pipe(destination);
       destination.pipe(socket);
     });
     destination.on('error', function (e) {
-      requestAuthorization(socket);
+      requestAuthorization(req, res);
     });
-  } else {
-    requestAuthorization(socket);
-  }
+  });
 }
 
 /**
  * Checks `Proxy-Authorization` request headers. Same logic applied to CONNECT
  * requests as well as regular HTTP requests.
  *
+ * @param {http.Server} server
  * @param {http.ServerRequest} req
+ * @param {Function} fn callback function
  * @api private
  */
 
-function authenticate (req) {
-  var auth = req.headers['proxy-authorization'];
-  if (!auth) return false;
-  var parsed = basicAuthParser(auth);
-  if (parsed.scheme != 'Basic') return false;
-  if (parsed.username != creds.username) return false;
-  if (parsed.password != creds.password) return false;
-  return true;
+function authenticate (server, req, fn) {
+  debug('authenticating request %s %s', req.method, req.url);
+  if ('function' == typeof server.authenticate) {
+    server.authenticate(req, fn);
+  } else {
+    // no `server.authenticate()` function, so just allow the request
+    fn(null, true);
+  }
 }
 
 /**
@@ -122,15 +146,13 @@ function authenticate (req) {
  * @api private
  */
 
-function requestAuthorization (socket) {
+function requestAuthorization (req, res) {
   // request Basic proxy authorization
   var realm = 'proxy';
 
-  socket.write('HTTP/1.1 407 Proxy Authentication Required\r\n' +
-               'Proxy-Authenticate: Basic realm="' + realm + '"\r\n' +
-               '\r\n');
-
-  socket.on('data', console.log);
-  socket.on('end', console.log.bind(null, 'END event!'));
-  socket.on('close', console.log.bind(null, 'CLOSE event!'));
+  var headers = {
+    'Proxy-Authenticate': 'Basic realm="' + realm + '"'
+  };
+  res.writeHead(407, headers);
+  res.end();
 }
