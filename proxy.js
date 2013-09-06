@@ -83,7 +83,6 @@ function onconnect (req, socket, head) {
     var host = parts[0];
     var port = +parts[1];
     var opts = { host: host, port: port };
-    console.log(opts);
     var destination = net.connect(opts);
     destination.on('connect', function () {
       socket.write('HTTP/1.1 200 Connection established\r\n' +
