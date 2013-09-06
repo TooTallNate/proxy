@@ -103,10 +103,11 @@ function onconnect (req, socket, head) {
  * Checks `Proxy-Authorization` request headers. Same logic applied to CONNECT
  * requests as well as regular HTTP requests.
  *
+ * @param {http.ServerRequest} req
  * @api private
  */
 
-function authenticate (req, fn) {
+function authenticate (req) {
   var auth = req.headers['proxy-authorization'];
   if (!auth) return false;
   var parsed = basicAuthParser(auth);
