@@ -5,8 +5,31 @@
 
 var net = require('net');
 var url = require('url');
-var http = require('http');
 var basicAuthParser = require('basic-auth-parser');
+var debug = require('debug')('proxy');
+
+/**
+ * Module exports.
+ */
+
+module.exports = setup;
+
+/**
+ * Sets up an `http.Server` or `https.Server` instance with the necessary
+ * "request" and "connect" event listeners in order to make the server act as an
+ * HTTP proxy.
+ *
+ * @param {http.Server|https.Server} server
+ * @param {Object} options
+ * @api public
+ */
+
+function setup (server, options) {
+  if (!server) http.createServer();
+  server.on('request', onrequest);
+  server.on('connect', onconnect);
+  return server;
+}
 
 /**
  * 13.5.1 End-to-end and Hop-by-hop Headers
@@ -36,13 +59,11 @@ var creds = {
   password: 'bar'
 };
 
-var server = http.createServer();
-
 /**
  * HTTP GET/POST/DELETE/PUT, etc. proxy requests.
  */
 
-server.on('request', function (req, res) {
+function onrequest (req, res) {
   if (authenticate(req)) {
     var parsed = url.parse(req.url);
     console.log(req.method, req.url, req.headers);
@@ -50,13 +71,13 @@ server.on('request', function (req, res) {
   } else {
     requestAuthorization(socket);
   }
-});
+}
 
 /**
  * HTTP CONNECT proxy requests.
  */
 
-server.on('connect', function (req, socket, head) {
+function onconnect (req, socket, head) {
   if (authenticate(req)) {
     var parts = req.url.split(':');
     var host = parts[0];
@@ -74,8 +95,9 @@ server.on('connect', function (req, socket, head) {
       requestAuthorization(socket);
     });
   } else {
+    requestAuthorization(socket);
   }
-});
+}
 
 /**
  * Checks `Proxy-Authorization` request headers. Same logic applied to CONNECT
@@ -96,22 +118,19 @@ function authenticate (req, fn) {
 
 /**
  * Sends a "407 Proxy Authentication Required" HTTP response to the `socket`.
- * XXX: support/differentiate Keep-Alive/close connection here.
  *
  * @api private
  */
 
 function requestAuthorization (socket) {
   // request Basic proxy authorization
-  socket.end('HTTP/1.1 407 Proxy Authentication Required\r\n' +
-             'Proxy-Authenticate: Basic realm="WallyWorld"\r\n' +
-             '\r\n');
+  var realm = 'proxy';
+
+  socket.write('HTTP/1.1 407 Proxy Authentication Required\r\n' +
+               'Proxy-Authenticate: Basic realm="' + realm + '"\r\n' +
+               '\r\n');
 
   socket.on('data', console.log);
   socket.on('end', console.log.bind(null, 'END event!'));
   socket.on('close', console.log.bind(null, 'CLOSE event!'));
 }
-
-var port = 8080;
-server.listen(port);
-console.log('proxy server listening on port %d', port);

@@ -1,0 +1,19 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var http = require('http');
+var setup = require('../');
+
+/**
+ * Setup the HTTP "proxy server" instance.
+ */
+
+var proxy = http.createServer();
+setup(proxy);
+
+proxy.listen(8080, function () {
+  console.log('HTTP(s) proxy server listening on port %d', this.address().port);
+});
