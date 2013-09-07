@@ -9,6 +9,12 @@ var http = require('http');
 var assert = require('assert');
 var debug = require('debug')('proxy');
 
+// log levels
+debug.request = require('debug')('proxy ← ← ←');
+debug.response = require('debug')('proxy → → →');
+debug.proxyRequest = require('debug')('proxy ↑ ↑ ↑');
+debug.proxyResponse = require('debug')('proxy ↓ ↓ ↓');
+
 /**
  * Module exports.
  */
@@ -66,7 +72,7 @@ function eachHeader (obj, fn) {
  */
 
 function onrequest (req, res) {
-  debug('← ← ← %s %s HTTP/%s ', req.method, req.url, req.httpVersion);
+  debug.request('%s %s HTTP/%s ', req.method, req.url, req.httpVersion);
   var server = this;
   var socket = req.socket;
 
@@ -97,22 +103,23 @@ function onrequest (req, res) {
     // custom `http.Agent` support, set `server.agent`
     var agent = server.agent;
     if (null != agent) {
-      debug('↑ ↑ ↑ setting custom `http.Agent` option for proxy request: %s', agent);
+      debug.proxyRequest('setting custom `http.Agent` option for proxy request: %s', agent);
       parsed.agent = agent;
       agent = null;
     }
 
     var proxyReq = http.request(parsed);
-    debug('↑ ↑ ↑ %s %s HTTP/1.1 ', proxyReq.method, proxyReq.path);
+    debug.proxyRequest('%s %s HTTP/1.1 ', proxyReq.method, proxyReq.path);
 
     proxyReq.on('response', function (proxyRes) {
-      debug('↓ ↓ ↓ HTTP/1.1 %s', proxyRes.statusCode);
-      debug('→ → → HTTP/1.1 %s', proxyRes.statusCode);
+      debug.proxyResponse('HTTP/1.1 %s', proxyRes.statusCode);
+      debug.response('HTTP/1.1 %s', proxyRes.statusCode);
+      // TODO: remove hop-by-hop headers
       res.writeHead(proxyRes.statusCode, proxyRes.headers);
       proxyRes.pipe(res);
     });
     proxyReq.on('error', function (err) {
-      debug('↓ ↓ ↓ proxy HTTP request "error" event %j', err.stack || err);
+      debug.proxyResponse('proxy HTTP request "error" event %j', err.stack || err);
       console.error('proxyReq "error" event', err);
       // TODO: respond to `res`
     });
@@ -120,7 +127,7 @@ function onrequest (req, res) {
     // if the client closes the connection prematurely,
     // then close the upstream socket
     req.socket.on('close', function () {
-      debug('← ← ← client socket "close" event');
+      debug.request('client socket "close" event, aborting HTTP request to "%s"', req.url);
       proxyReq.abort();
     });
 
@@ -133,7 +140,7 @@ function onrequest (req, res) {
  */
 
 function onconnect (req, socket, head) {
-  debug('← ← ← %s %s HTTP/%s ', req.method, req.url, req.httpVersion);
+  debug.request('%s %s HTTP/%s ', req.method, req.url, req.httpVersion);
   assert(!head || 0 == head.length, '"head" should be empty for proxy requests');
 
   // create the `res` instance for this request since Node.js
@@ -163,12 +170,12 @@ function onconnect (req, socket, head) {
     var port = +parts[1];
     var opts = { host: host, port: port };
 
-    debug('↑ ↑ ↑ connecting to proxy target %s', req.url);
+    debug.proxyRequest('connecting to proxy target %s', req.url);
     var destination = net.connect(opts);
 
     destination.on('connect', function () {
-      debug('↓ ↓ ↓ proxy target %s "connect" event', req.url);
-      debug('→ → → HTTP/1.1 200 Connection established');
+      debug.proxyResponse('↓ ↓ ↓ proxy target %s "connect" event', req.url);
+      debug.response('HTTP/1.1 200 Connection established');
       var headers = {
       };
       res.writeHead(200, 'Connection established', headers);
@@ -183,11 +190,12 @@ function onconnect (req, socket, head) {
       destination.pipe(socket);
     });
     destination.on('close', function () {
-      debug('↓ ↓ ↓ proxy target %s "close" event', req.url);
+      debug.proxyResponse('proxy target %s "close" event', req.url);
       socket.destroy();
     });
     destination.on('error', function (e) {
-      debug('↓ ↓ ↓ proxy target %s "error" event: %s', req.url, e.stack || e);
+      debug.proxyResponse('proxy target %s "error" event: %s', req.url, e.stack || e);
+      // TODO: handle after the header is sent i.e. check error code
       requestAuthorization(req, res);
     });
   });
@@ -205,7 +213,7 @@ function onconnect (req, socket, head) {
 
 function authenticate (server, req, fn) {
   if ('function' == typeof server.authenticate) {
-    debug('authenticating request "%s %s"', req.method, req.url);
+    debug.request('authenticating request "%s %s"', req.method, req.url);
     server.authenticate(req, fn);
   } else {
     // no `server.authenticate()` function, so just allow the request
@@ -221,7 +229,7 @@ function authenticate (server, req, fn) {
 
 function requestAuthorization (req, res) {
   // request Basic proxy authorization
-  debug('requesting proxy authorization for "%s %s"', req.method, req.url);
+  debug.response('requesting proxy authorization for "%s %s"', req.method, req.url);
 
   // TODO: make "realm" and "type" (Basic) be configurable...
   var realm = 'proxy';
