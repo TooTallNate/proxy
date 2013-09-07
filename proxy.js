@@ -176,9 +176,7 @@ function onconnect (req, socket, head) {
     destination.on('connect', function () {
       debug.proxyResponse('↓ ↓ ↓ proxy target %s "connect" event', req.url);
       debug.response('HTTP/1.1 200 Connection established');
-      var headers = {
-      };
-      res.writeHead(200, 'Connection established', headers);
+      res.writeHead(200, 'Connection established');
 
       // HACK: force a flush of the HTTP header
       res._send('');
