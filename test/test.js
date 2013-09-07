@@ -32,6 +32,30 @@ describe('proxy', function () {
     proxy.close();
   });
 
+  it('should proxy HTTP GET requests', function (done) {
+    var gotData = false;
+    var socket = net.connect({ port: port });
+    socket.once('close', function () {
+      assert(gotData);
+      done();
+    });
+    socket.once('connect', function () {
+      socket.write(
+        'GET http://www.google.com/ HTTP/1.1\r\n' +
+        'User-Agent: curl/7.30.0\r\n' +
+        'Host: www.google.com\r\n' +
+        'Accept: */*\r\n' +
+        'Proxy-Connection: Keep-Alive\r\n' +
+        '\r\n');
+    });
+    socket.setEncoding('utf8');
+    socket.once('data', function (data) {
+      assert(0 == data.indexOf('HTTP/1.1 200 OK\r\n'));
+      gotData = true;
+      socket.destroy();
+    });
+  });
+
   it('should establish connection for CONNECT requests', function (done) {
     var gotData = false;
     var socket = net.connect({ port: port });
