@@ -83,7 +83,7 @@ describe('proxy', function () {
   describe('authentication', function () {
     function clearAuth () {
       delete proxy.authenticate;
-    };
+    }
 
     before(clearAuth);
     after(clearAuth);
