@@ -66,12 +66,14 @@ function eachHeader (obj, fn) {
  */
 
 function onrequest (req, res) {
+  debug('← ← ← %s %s HTTP/%s ', req.method, req.url, req.httpVersion);
+  var server = this;
   var socket = req.socket;
 
   // pause the socket during authentication so no data is lost
   socket.pause();
 
-  authenticate(this, req, function (err, auth) {
+  authenticate(server, req, function (err, auth) {
     socket.resume();
     if (err) {
       // an error occured during login!
@@ -83,7 +85,7 @@ function onrequest (req, res) {
     var parsed = url.parse(req.url);
     if ('http:' != parsed.protocol) {
       // only "http://" is supported, "https://" should use CONNECT method
-      res.writeHead(500);
+      res.writeHead(400);
       res.end('Only "http:" protocol prefix is supported\n');
       return;
     }
@@ -92,17 +94,36 @@ function onrequest (req, res) {
     // TODO: remove hop-by-hop headers
     parsed.headers = req.headers;
 
+    // custom `http.Agent` support, set `server.agent`
+    var agent = server.agent;
+    if (null != agent) {
+      debug('↑ ↑ ↑ setting custom `http.Agent` option for proxy request: %s', agent);
+      parsed.agent = agent;
+      agent = null;
+    }
+
     var proxyReq = http.request(parsed);
+    debug('↑ ↑ ↑ %s %s HTTP/1.1 ', proxyReq.method, proxyReq.path);
+
     proxyReq.on('response', function (proxyRes) {
-      debug('proxy HTTP request "response" event');
-      debug('response headers: %j', proxyRes.headers);
+      debug('↓ ↓ ↓ HTTP/1.1 %s', proxyRes.statusCode);
+      debug('→ → → HTTP/1.1 %s', proxyRes.statusCode);
       res.writeHead(proxyRes.statusCode, proxyRes.headers);
       proxyRes.pipe(res);
     });
     proxyReq.on('error', function (err) {
+      debug('↓ ↓ ↓ proxy HTTP request "error" event %j', err.stack || err);
       console.error('proxyReq "error" event', err);
-      // TODO: respond to `req`
+      // TODO: respond to `res`
     });
+
+    // if the client closes the connection prematurely,
+    // then close the upstream socket
+    req.socket.on('close', function () {
+      debug('← ← ← client socket "close" event');
+      proxyReq.abort();
+    });
+
     req.pipe(proxyReq);
   });
 }
@@ -112,11 +133,12 @@ function onrequest (req, res) {
  */
 
 function onconnect (req, socket, head) {
+  debug('← ← ← %s %s HTTP/%s ', req.method, req.url, req.httpVersion);
   assert(!head || 0 == head.length, '"head" should be empty for proxy requests');
 
   // create the `res` instance for this request since Node.js
   // doesn't provide us with one :(
-  // XXX: this is undocumented API, so it will likely break some day...
+  // XXX: this is undocumented API, so it will break some day (ノಠ益ಠ)ノ彡┻━┻
   var res = new http.ServerResponse(req);
   res.shouldKeepAlive = false;
   res.chunkedEncoding = false;
@@ -140,8 +162,13 @@ function onconnect (req, socket, head) {
     var host = parts[0];
     var port = +parts[1];
     var opts = { host: host, port: port };
+
+    debug('↑ ↑ ↑ connecting to proxy target %s', req.url);
     var destination = net.connect(opts);
+
     destination.on('connect', function () {
+      debug('↓ ↓ ↓ proxy target %s "connect" event', req.url);
+      debug('→ → → HTTP/1.1 200 Connection established');
       var headers = {
       };
       res.writeHead(200, 'Connection established', headers);
@@ -155,7 +182,12 @@ function onconnect (req, socket, head) {
       socket.pipe(destination);
       destination.pipe(socket);
     });
+    destination.on('close', function () {
+      debug('↓ ↓ ↓ proxy target %s "close" event', req.url);
+      socket.destroy();
+    });
     destination.on('error', function (e) {
+      debug('↓ ↓ ↓ proxy target %s "error" event: %s', req.url, e.stack || e);
       requestAuthorization(req, res);
     });
   });
@@ -172,8 +204,8 @@ function onconnect (req, socket, head) {
  */
 
 function authenticate (server, req, fn) {
-  debug('authenticating request %s %s', req.method, req.url);
   if ('function' == typeof server.authenticate) {
+    debug('authenticating request "%s %s"', req.method, req.url);
     server.authenticate(req, fn);
   } else {
     // no `server.authenticate()` function, so just allow the request
