@@ -52,21 +52,58 @@ var hopByHopHeaders = [
 ];
 
 /**
+ * Iterator function for the request/response's "headers".
+ * Invokes `fn` for "each" header entry in the request.
+ *
+ * @api private
+ */
+
+function eachHeader (obj, fn) {
+}
+
+/**
  * HTTP GET/POST/DELETE/PUT, etc. proxy requests.
  */
 
 function onrequest (req, res) {
+  var socket = req.socket;
+
+  // pause the socket during authentication so no data is lost
+  socket.pause();
+
   authenticate(this, req, function (err, auth) {
+    socket.resume();
     if (err) {
       // an error occured during login!
       res.writeHead(500);
-      res.end();
+      res.end((err.stack || err.message || err) + '\n');
       return;
     }
     if (!auth) return requestAuthorization(req, res);;
     var parsed = url.parse(req.url);
-    console.log(req.method, req.url, req.headers);
-    console.log(parsed);
+    if ('http:' != parsed.protocol) {
+      // only "http://" is supported, "https://" should use CONNECT method
+      res.writeHead(500);
+      res.end('Only "http:" protocol prefix is supported\n');
+      return;
+    }
+
+    parsed.method = req.method;
+    // TODO: remove hop-by-hop headers
+    parsed.headers = req.headers;
+
+    var proxyReq = http.request(parsed);
+    proxyReq.on('response', function (proxyRes) {
+      debug('proxy HTTP request "response" event');
+      debug('response headers: %j', proxyRes.headers);
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res);
+    });
+    proxyReq.on('error', function (err) {
+      console.error('proxyReq "error" event', err);
+      // TODO: respond to `req`
+    });
+    req.pipe(proxyReq);
   });
 }
 
@@ -86,11 +123,15 @@ function onconnect (req, socket, head) {
   res.useChunkedEncodingByDefault = false;
   res.assignSocket(socket);
 
+  // pause the socket during authentication so no data is lost
+  socket.pause();
+
   authenticate(this, req, function (err, auth) {
+    socket.resume();
     if (err) {
       // an error occured during login!
       res.writeHead(500);
-      res.end();
+      res.end((err.stack || err.message || err) + '\n');
       return;
     }
     if (!auth) return requestAuthorization(req, res);;
@@ -148,6 +189,9 @@ function authenticate (server, req, fn) {
 
 function requestAuthorization (req, res) {
   // request Basic proxy authorization
+  debug('requesting proxy authorization for "%s %s"', req.method, req.url);
+
+  // TODO: make "realm" and "type" (Basic) be configurable...
   var realm = 'proxy';
 
   var headers = {
