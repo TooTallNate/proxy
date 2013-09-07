@@ -17,9 +17,13 @@ describe('proxy', function () {
   var proxy;
   var proxyPort;
 
+  var server;
+  var serverPort;
+
   this.slow(1000);
 
   before(function (done) {
+    // setup proxy server
     proxy = setup(http.createServer());
     proxy.listen(function () {
       proxyPort = proxy.address().port;
@@ -27,9 +31,25 @@ describe('proxy', function () {
     });
   });
 
+  before(function (done) {
+    // setup target server
+    server = http.createServer(function (req, res) {
+      res.end('ok\n');
+    });
+    server.listen(function () {
+      serverPort = server.address().port;
+      done();
+    });
+  });
+
   after(function (done) {
     proxy.once('close', function () { done(); });
     proxy.close();
+  });
+
+  after(function (done) {
+    server.once('close', function () { done(); });
+    server.close();
   });
 
   it('should proxy HTTP GET requests', function (done) {
@@ -40,10 +60,11 @@ describe('proxy', function () {
       done();
     });
     socket.once('connect', function () {
+      var host = '127.0.0.1:' + serverPort;
       socket.write(
-        'GET http://www.google.com/ HTTP/1.1\r\n' +
+        'GET http://' + host + '/ HTTP/1.1\r\n' +
         'User-Agent: curl/7.30.0\r\n' +
-        'Host: www.google.com\r\n' +
+        'Host: ' + host + '\r\n' +
         'Accept: */*\r\n' +
         'Proxy-Connection: Keep-Alive\r\n' +
         '\r\n');
@@ -64,9 +85,10 @@ describe('proxy', function () {
       done();
     });
     socket.once('connect', function () {
+      var host = '127.0.0.1:' + serverPort;
       socket.write(
-        'CONNECT google.com:443 HTTP/1.1\r\n' +
-        'Host: google.com:443\r\n' +
+        'CONNECT ' + host + ' HTTP/1.1\r\n' +
+        'Host: ' + host + '\r\n' +
         'User-Agent: curl/7.30.0\r\n' +
         'Proxy-Connection: Keep-Alive\r\n' +
         '\r\n');
