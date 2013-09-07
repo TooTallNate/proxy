@@ -31,9 +31,7 @@ describe('proxy', function () {
 
   before(function (done) {
     // setup target server
-    server = http.createServer(function (req, res) {
-      res.end('ok\n');
-    });
+    server = http.createServer();
     server.listen(function () {
       serverPort = server.address().port;
       done();
@@ -52,13 +50,24 @@ describe('proxy', function () {
 
   it('should proxy HTTP GET requests', function (done) {
     var gotData = false;
+    var gotRequest = false;
+    var host = '127.0.0.1:' + serverPort;
+    server.once('request', function (req, res) {
+      gotRequest = true;
+      // ensure headers are being proxied
+      assert(req.headers['user-agent'] == 'curl/7.30.0');
+      assert(req.headers.host == host);
+      assert(req.headers.accept == '*/*');
+      res.end();
+    });
+
     var socket = net.connect({ port: proxyPort });
     socket.once('close', function () {
       assert(gotData);
+      assert(gotRequest);
       done();
     });
     socket.once('connect', function () {
-      var host = '127.0.0.1:' + serverPort;
       socket.write(
         'GET http://' + host + '/ HTTP/1.1\r\n' +
         'User-Agent: curl/7.30.0\r\n' +
