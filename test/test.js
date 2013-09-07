@@ -15,14 +15,14 @@ var setup = require('../');
 describe('proxy', function () {
 
   var proxy;
-  var port;
+  var proxyPort;
 
   this.slow(1000);
 
   before(function (done) {
     proxy = setup(http.createServer());
     proxy.listen(function () {
-      port = proxy.address().port;
+      proxyPort = proxy.address().port;
       done();
     });
   });
@@ -34,7 +34,7 @@ describe('proxy', function () {
 
   it('should proxy HTTP GET requests', function (done) {
     var gotData = false;
-    var socket = net.connect({ port: port });
+    var socket = net.connect({ port: proxyPort });
     socket.once('close', function () {
       assert(gotData);
       done();
@@ -58,7 +58,7 @@ describe('proxy', function () {
 
   it('should establish connection for CONNECT requests', function (done) {
     var gotData = false;
-    var socket = net.connect({ port: port });
+    var socket = net.connect({ port: proxyPort });
     socket.once('close', function () {
       assert(gotData);
       done();
@@ -96,7 +96,7 @@ describe('proxy', function () {
         socket.destroy();
         called = true;
       };
-      var socket = net.connect({ port: port });
+      var socket = net.connect({ port: proxyPort });
       socket.once('close', function () {
         assert(called);
         done();
@@ -115,7 +115,7 @@ describe('proxy', function () {
         fn(null, false);
       };
       var gotData = false;
-      var socket = net.connect({ port: port });
+      var socket = net.connect({ port: proxyPort });
       socket.once('close', function () {
         assert(gotData);
         done();
