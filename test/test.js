@@ -20,8 +20,6 @@ describe('proxy', function () {
   var server;
   var serverPort;
 
-  this.slow(1000);
-
   before(function (done) {
     // setup proxy server
     proxy = setup(http.createServer());
