@@ -1,1 +1,7 @@
-node_modules/*/test
+# ignore test files/dirs from the "dependencies"
+/node_modules/*/test*
+
+# ignore "devDependencies"
+/node_modules/.bin/mocha
+/node_modules/.bin/_mocha
+/node_modules/mocha
