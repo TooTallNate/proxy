@@ -195,6 +195,7 @@ function onconnect (req, socket, head) {
     var host = parts[0];
     var port = +parts[1];
     var opts = { host: host, port: port };
+    var gotResponse = false;
 
     debug.proxyRequest('connecting to proxy target %s', req.url);
     var destination = net.connect(opts);
@@ -202,6 +203,7 @@ function onconnect (req, socket, head) {
     destination.on('connect', function () {
       debug.proxyResponse('↓ ↓ ↓ proxy target %s "connect" event', req.url);
       debug.response('HTTP/1.1 200 Connection established');
+      gotResponse = true;
       res.writeHead(200, 'Connection established');
 
       // HACK: force a flush of the HTTP header
@@ -217,10 +219,19 @@ function onconnect (req, socket, head) {
       debug.proxyResponse('proxy target %s "close" event', req.url);
       socket.destroy();
     });
-    destination.on('error', function (e) {
-      debug.proxyResponse('proxy target %s "error" event: %s', req.url, e.stack || e);
-      // TODO: handle after the header is sent i.e. check error code
-      requestAuthorization(req, res);
+    destination.on('error', function (err) {
+      debug.proxyResponse('proxy target %s "error" event:\n%s', req.url, err.stack || err);
+      if (gotResponse) {
+        // already sent a response to the original request...
+        // just destroy the socket
+        socket.destroy();
+      } else if ('ENOTFOUND' == err.code) {
+        res.writeHead(404);
+        res.end();
+      } else {
+        res.writeHead(500);
+        res.end();
+      }
     });
   });
 }
