@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+require('longjohn');
+
 process.title = 'proxy';
 
 /**
