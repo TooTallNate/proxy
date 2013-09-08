@@ -127,11 +127,24 @@ function onrequest (req, res) {
       return;
     }
 
+    // proxy the request HTTP method
     parsed.method = req.method;
 
+    // setup outbound proxy request HTTP headers
     var headers = {};
+    var hasXForwardedFor = false;
+    parsed.headers = headers;
     eachHeader(req, function (key, value) {
       debug.request('Request Header: "%s: %s"', key, value);
+
+      // add "X-Forwarded-For" header if applicable
+      // http://en.wikipedia.org/wiki/X-Forwarded-For
+      if (!hasXForwardedFor && /x-forwarded-for/i.test(key)) {
+        hasXForwardedFor = true;
+        value += ', ' + socket.remoteAddress;
+        debug.proxyRequest('appending client request IP address to existing "%s" header: "%s"', key, value);
+      }
+
       if (isHopByHop.test(key)) {
         debug.proxyRequest('ignoring hop-by-hop header "%s"', key);
       } else {
@@ -145,7 +158,13 @@ function onrequest (req, res) {
         }
       }
     });
-    parsed.headers = headers;
+
+    // add "X-Forwarded-For" header if it's still not here by now
+    // http://en.wikipedia.org/wiki/X-Forwarded-For
+    if (!hasXForwardedFor) {
+      headers['X-Forwarded-For'] = socket.remoteAddress;
+      debug.proxyRequest('adding new "X-Forwarded-For" header: "%s"', headers['X-Forwarded-For']);
+    }
 
     // custom `http.Agent` support, set `server.agent`
     var agent = server.agent;
