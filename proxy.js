@@ -57,6 +57,9 @@ var hopByHopHeaders = [
   'Upgrade'
 ];
 
+// create a case-insensitive RegExp to match "hop by hop" headers
+var isHopByHop = new RegExp('(' + hopByHopHeaders.join('|') + ')', 'i');
+
 /**
  * Iterator function for the request/response's "headers".
  * Invokes `fn` for "each" header entry in the request.
@@ -125,8 +128,24 @@ function onrequest (req, res) {
     }
 
     parsed.method = req.method;
-    // TODO: remove hop-by-hop headers
-    parsed.headers = req.headers;
+
+    var headers = {};
+    eachHeader(req, function (key, value) {
+      debug.request('Request Header: "%s: %s"', key, value);
+      if (isHopByHop.test(key)) {
+        debug.proxyRequest('ignoring hop-by-hop header "%s"', key);
+      } else {
+        var v = headers[key];
+        if (Array.isArray(v)) {
+          v.push(value);
+        } else if (null != v) {
+          headers[key] = [ v, value ];
+        } else {
+          headers[key] = value;
+        }
+      }
+    });
+    parsed.headers = headers;
 
     // custom `http.Agent` support, set `server.agent`
     var agent = server.agent;
