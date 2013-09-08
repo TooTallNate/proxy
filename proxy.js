@@ -65,6 +65,34 @@ var hopByHopHeaders = [
  */
 
 function eachHeader (obj, fn) {
+  if (obj.rawHeaders) {
+    // ideal scenario... >= node v0.11.x
+    // every even entry is a "key", every odd entry is a "value"
+    var key;
+    obj.rawHeaders.forEach(function (v) {
+      if (key) {
+        fn(key, v);
+        key = null;
+      } else {
+        key = v;
+      }
+    });
+  } else {
+    // otherwise we can *only* proxy the header names as lowercase'd
+    var headers = obj.headers;
+    if (!headers) return;
+    Object.keys(headers).forEach(function (key) {
+      var value = headers[key];
+      if (Array.isArray(value)) {
+        // set-cookie
+        value.forEach(function (val) {
+          fn(key, val);
+        });
+      } else {
+        fn(key, value);
+      }
+    });
+  }
 }
 
 /**
