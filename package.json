@@ -24,8 +24,7 @@
   "license": "MIT",
   "dependencies": {
     "basic-auth-parser": "0.0.2",
-    "debug": "0.7.2",
-    "longjohn": "0.2.1"
+    "debug": "0.7.2"
   },
   "devDependencies": {
     "mocha": "~1.12.1"
