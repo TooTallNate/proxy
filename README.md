@@ -1,6 +1,6 @@
-
-================
-### 
+proxy
+=====
+### An HTTP proxy written with Node.js (think Squid)
 
 
 Installation
@@ -9,14 +9,27 @@ Installation
 Install with `npm`:
 
 ``` bash
-$ npm install 
+$ npm install TooTallNate/proxy
 ```
 
 
 Examples
 --------
 
+#### Basic HTTP(s) proxy server
+
+A basic HTTP(s) server with all the default options. All requests are allowed.
+CONNECT HTTP method works as well.
+
 ``` js
+var http = require('http');
+var setup = require('proxy');
+
+var server = setup(http.createServer());
+server.listen(3128, function () {
+  var port = server.address().port;
+  console.log('HTTP(s) proxy server listening on port %d', port);
+});
 ```
 
 License
