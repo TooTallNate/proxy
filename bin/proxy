@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+process.title = 'proxy';
+
 /**
  * Module dependencies.
  */
