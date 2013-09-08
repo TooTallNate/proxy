@@ -108,28 +108,54 @@ function onrequest (req, res) {
       agent = null;
     }
 
+    var gotResponse = false;
     var proxyReq = http.request(parsed);
     debug.proxyRequest('%s %s HTTP/1.1 ', proxyReq.method, proxyReq.path);
 
     proxyReq.on('response', function (proxyRes) {
       debug.proxyResponse('HTTP/1.1 %s', proxyRes.statusCode);
       debug.response('HTTP/1.1 %s', proxyRes.statusCode);
+      gotResponse = true;
       // TODO: remove hop-by-hop headers
       res.writeHead(proxyRes.statusCode, proxyRes.headers);
       proxyRes.pipe(res);
+      res.on('finish', onfinish);
     });
     proxyReq.on('error', function (err) {
-      debug.proxyResponse('proxy HTTP request "error" event %j', err.stack || err);
-      console.error('proxyReq "error" event', err);
-      // TODO: respond to `res`
+      debug.proxyResponse('proxy HTTP request "error" event\n%s', err.stack || err);
+      cleanup();
+      if (gotResponse) {
+        // already sent a response to the original request...
+        // just destroy the socket
+        socket.destroy();
+      } else if ('ENOTFOUND' == err.code) {
+        res.writeHead(404);
+        res.end();
+      } else {
+        res.writeHead(500);
+        res.end();
+      }
     });
 
     // if the client closes the connection prematurely,
     // then close the upstream socket
-    req.socket.on('close', function () {
+    function onclose () {
       debug.request('client socket "close" event, aborting HTTP request to "%s"', req.url);
       proxyReq.abort();
-    });
+      cleanup();
+    }
+    socket.on('close', onclose);
+
+    function onfinish () {
+      debug.response('"finish" event');
+      cleanup();
+    }
+
+    function cleanup () {
+      debug.response('cleanup');
+      socket.removeListener('close', onclose);
+      res.removeListener('finish', onfinish);
+    }
 
     req.pipe(proxyReq);
   });
