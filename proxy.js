@@ -65,16 +65,16 @@ var hopByHopHeaders = [
  */
 
 function eachHeader (obj, fn) {
-  if (obj.rawHeaders) {
+  if (Array.isArray(obj.rawHeaders)) {
     // ideal scenario... >= node v0.11.x
     // every even entry is a "key", every odd entry is a "value"
-    var key;
+    var key = null;
     obj.rawHeaders.forEach(function (v) {
-      if (key) {
+      if (key === null) {
+        key = v;
+      } else {
         fn(key, v);
         key = null;
-      } else {
-        key = v;
       }
     });
   } else {
