@@ -17,6 +17,10 @@
     "x-forwarded-for"
   ],
   "author": "Nathan Rajlich <nathan@tootallnate.net> (http://n8.io/)",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/TooTallNate/proxy.git"
+  },
   "license": "MIT",
   "dependencies": {
     "basic-auth-parser": "0.0.2",
