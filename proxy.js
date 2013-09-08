@@ -198,7 +198,7 @@ function onconnect (req, socket, head) {
     var gotResponse = false;
 
     function onconnect () {
-      debug.proxyResponse('↓ ↓ ↓ proxy target %s "connect" event', req.url);
+      debug.proxyResponse('proxy target %s "connect" event', req.url);
       debug.response('HTTP/1.1 200 Connection established');
       gotResponse = true;
       res.writeHead(200, 'Connection established');
