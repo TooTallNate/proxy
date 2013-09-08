@@ -58,7 +58,7 @@ var hopByHopHeaders = [
 ];
 
 // create a case-insensitive RegExp to match "hop by hop" headers
-var isHopByHop = new RegExp('(' + hopByHopHeaders.join('|') + ')', 'i');
+var isHopByHop = new RegExp('^(' + hopByHopHeaders.join('|') + ')$', 'i');
 
 /**
  * Iterator function for the request/response's "headers".
