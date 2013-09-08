@@ -16,21 +16,10 @@ var proxy = http.createServer();
 setup(proxy);
 
 /**
- * Proxy authentication.
+ * Outbound proxy requests will use `agent: false`.
  */
 
-var username = 'foo';
-var password = 'bar';
-
-proxy.authenticate = function (req, fn) {
-  var auth = req.headers['proxy-authorization'];
-  if (!auth) return fn(null, false);
-  var parsed = basicAuthParser(auth);
-  if (parsed.scheme != 'Basic') return fn(null, false);
-  if (parsed.username != username) return fn(null, false);
-  if (parsed.password != password) return fn(null, false);
-  fn(null, true);
-};
+proxy.agent = false;
 
 /**
  * Bind to port.
