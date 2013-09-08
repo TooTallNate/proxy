@@ -136,6 +136,12 @@ function onrequest (req, res) {
       agent = null;
     }
 
+    if (null == parsed.port) {
+      // default the port number if not specified, for >= node v0.11.6...
+      // https://github.com/joyent/node/issues/6199
+      parsed.port = 80;
+    }
+
     var gotResponse = false;
     var proxyReq = http.request(parsed);
     debug.proxyRequest('%s %s HTTP/1.1 ', proxyReq.method, proxyReq.path);
