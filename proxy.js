@@ -187,10 +187,27 @@ function onrequest (req, res) {
 
     proxyReq.on('response', function (proxyRes) {
       debug.proxyResponse('HTTP/1.1 %s', proxyRes.statusCode);
-      debug.response('HTTP/1.1 %s', proxyRes.statusCode);
       gotResponse = true;
-      // TODO: remove hop-by-hop headers
-      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+
+      var headers = {};
+      eachHeader(proxyRes, function (key, value) {
+        debug.proxyResponse('Proxy Response Header: "%s: %s"', key, value);
+        if (isHopByHop.test(key)) {
+          debug.response('ignoring hop-by-hop header "%s"', key);
+        } else {
+          var v = headers[key];
+          if (Array.isArray(v)) {
+            v.push(value);
+          } else if (null != v) {
+            headers[key] = [ v, value ];
+          } else {
+            headers[key] = value;
+          }
+        }
+      });
+
+      debug.response('HTTP/1.1 %s', proxyRes.statusCode);
+      res.writeHead(proxyRes.statusCode, headers);
       proxyRes.pipe(res);
       res.on('finish', onfinish);
     });
