@@ -120,12 +120,6 @@ function onrequest (req, res) {
     }
     if (!auth) return requestAuthorization(req, res);;
     var parsed = url.parse(req.url);
-    if ('http:' != parsed.protocol) {
-      // only "http://" is supported, "https://" should use CONNECT method
-      res.writeHead(400);
-      res.end('Only "http:" protocol prefix is supported\n');
-      return;
-    }
 
     // proxy the request HTTP method
     parsed.method = req.method;
@@ -178,6 +172,13 @@ function onrequest (req, res) {
       // default the port number if not specified, for >= node v0.11.6...
       // https://github.com/joyent/node/issues/6199
       parsed.port = 80;
+    }
+
+    if ('http:' != parsed.protocol) {
+      // only "http://" is supported, "https://" should use CONNECT method
+      res.writeHead(400);
+      res.end('Only "http:" protocol prefix is supported\n');
+      return;
     }
 
     var gotResponse = false;
