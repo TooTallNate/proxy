@@ -197,10 +197,7 @@ function onconnect (req, socket, head) {
     var opts = { host: host, port: port };
     var gotResponse = false;
 
-    debug.proxyRequest('connecting to proxy target %s', req.url);
-    var destination = net.connect(opts);
-
-    destination.on('connect', function () {
+    function onconnect () {
       debug.proxyResponse('↓ ↓ ↓ proxy target %s "connect" event', req.url);
       debug.response('HTTP/1.1 200 Connection established');
       gotResponse = true;
@@ -214,13 +211,22 @@ function onconnect (req, socket, head) {
 
       socket.pipe(destination);
       destination.pipe(socket);
-    });
-    destination.on('close', function () {
+    }
+
+    function onclose () {
       debug.proxyResponse('proxy target %s "close" event', req.url);
+      cleanup();
       socket.destroy();
-    });
-    destination.on('error', function (err) {
+    }
+
+    function onend () {
+      debug.proxyResponse('proxy target %s "end" event', req.url);
+      cleanup();
+    }
+
+    function onerror (err) {
       debug.proxyResponse('proxy target %s "error" event:\n%s', req.url, err.stack || err);
+      cleanup();
       if (gotResponse) {
         debug.response('already sent a response, just destroying the socket...');
         socket.destroy();
@@ -233,7 +239,22 @@ function onconnect (req, socket, head) {
         res.writeHead(500);
         res.end();
       }
-    });
+    }
+
+    function cleanup () {
+      debug.response('cleanup');
+      destination.removeListener('connect', onconnect);
+      destination.removeListener('close', onclose);
+      destination.removeListener('error', onerror);
+      destination.removeListener('end', onend);
+    }
+
+    debug.proxyRequest('connecting to proxy target %s', req.url);
+    var destination = net.connect(opts);
+    destination.on('connect', onconnect);
+    destination.on('close', onclose);
+    destination.on('error', onerror);
+    destination.on('end', onend);
   });
 }
 
