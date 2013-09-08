@@ -9,7 +9,7 @@ Installation
 Install with `npm`:
 
 ``` bash
-$ npm install TooTallNate/proxy
+$ npm install proxy
 ```
 
 
