@@ -1,6 +1,9 @@
 proxy
 =====
 ### An HTTP proxy written with Node.js (think Squid)
+[![Build Status](https://travis-ci.org/TooTallNate/proxy.png?branch=master)](https://travis-ci.org/TooTallNate/proxy)
+
+Proxy server...
 
 
 Installation
