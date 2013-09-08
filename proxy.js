@@ -15,6 +15,12 @@ debug.response = require('debug')('proxy → → →');
 debug.proxyRequest = require('debug')('proxy ↑ ↑ ↑');
 debug.proxyResponse = require('debug')('proxy ↓ ↓ ↓');
 
+// hostname
+var hostname = require('os').hostname();
+
+// proxy server version
+var version  = require('./package.json').version;
+
 /**
  * Module exports.
  */
@@ -127,16 +133,27 @@ function onrequest (req, res) {
     // setup outbound proxy request HTTP headers
     var headers = {};
     var hasXForwardedFor = false;
+    var hasVia = false;
+    var via = '1.1 ' + hostname + ' (proxy/' + version + ')';
+
     parsed.headers = headers;
     eachHeader(req, function (key, value) {
       debug.request('Request Header: "%s: %s"', key, value);
+      var keyLower = key.toLowerCase();
 
-      // add "X-Forwarded-For" header if applicable
-      // http://en.wikipedia.org/wiki/X-Forwarded-For
-      if (!hasXForwardedFor && /x-forwarded-for/i.test(key)) {
+      if (!hasXForwardedFor && 'x-forwarded-for' === keyLower) {
+        // append to existing "X-Forwarded-For" header
+        // http://en.wikipedia.org/wiki/X-Forwarded-For
         hasXForwardedFor = true;
         value += ', ' + socket.remoteAddress;
-        debug.proxyRequest('appending client request IP address to existing "%s" header: "%s"', key, value);
+        debug.proxyRequest('appending to existing "%s" header: "%s"', key, value);
+      }
+
+      if (!hasVia && 'via' === keyLower) {
+        // append to existing "Via" header
+        hasVia = true;
+        value += ', ' + via;
+        debug.proxyRequest('appending to existing "%s" header: "%s"', key, value);
       }
 
       if (isHopByHop.test(key)) {
@@ -158,6 +175,12 @@ function onrequest (req, res) {
     if (!hasXForwardedFor) {
       headers['X-Forwarded-For'] = socket.remoteAddress;
       debug.proxyRequest('adding new "X-Forwarded-For" header: "%s"', headers['X-Forwarded-For']);
+    }
+
+    // add "Via" header if still not set by now
+    if (!hasVia) {
+      headers.Via = via;
+      debug.proxyRequest('adding new "Via" header: "%s"', headers.Via);
     }
 
     // custom `http.Agent` support, set `server.agent`
