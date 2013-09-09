@@ -6,6 +6,13 @@ process.title = 'proxy';
  * Module dependencies.
  */
 
+var program = require('commander');
+
+program
+  .version(require('../package.json').version)
+  .option('-p, --port <n>', 'TCP port number to bind to', 3128, Number)
+  .parse(process.argv);
+
 var http = require('http');
 var setup = require('../');
 var basicAuthParser = require('basic-auth-parser');
@@ -27,6 +34,6 @@ proxy.agent = false;
  * Bind to port.
  */
 
-proxy.listen(8080, function () {
+proxy.listen(program.port, function () {
   console.log('HTTP(s) proxy server listening on port %d', this.address().port);
 });
