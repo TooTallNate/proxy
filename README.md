@@ -85,7 +85,9 @@ For example, to authorize "Basic" authentication with username "foo" and
 password "bar":
 
 ``` bash
-$ proxy --authenticate 'if [ "$PROXY_AUTH_USERNAME" = "foo" ] && [ "$PROXY_AUTH_PASSWORD" = "bar" ]; \
+$ proxy --authenticate 'if \
+    [ "$PROXY_AUTH_USERNAME" = "foo" ] && \
+    [ "$PROXY_AUTH_PASSWORD" = "bar" ]; \
       then exit 0; \
     fi; \
     exit 1;'
