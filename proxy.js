@@ -384,14 +384,8 @@ function onconnect (req, socket, head) {
 function authenticate (server, req, fn) {
   var hasAuthenticate = 'function' == typeof server.authenticate;
   if (hasAuthenticate) {
-    if ('proxy-authorization' in req.headers) {
-      debug.request('authenticating request "%s %s"', req.method, req.url);
-      server.authenticate(req, fn);
-    } else {
-      // has a `server.authenticate()` function, but no "Proxy-Authorization"
-      // header was given... reject
-      fn(null, false);
-    }
+    debug.request('authenticating request "%s %s"', req.method, req.url);
+    server.authenticate(req, fn);
   } else {
     // no `server.authenticate()` function, so just allow the request
     fn(null, true);
