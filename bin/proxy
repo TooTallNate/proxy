@@ -46,6 +46,11 @@ if (program.authenticate) {
 
     // parse the "Proxy-Authorization" header
     var auth = req.headers['proxy-authorization'];
+    if (!auth) {
+      // optimization: don't invoke the child process if no
+      // "Proxy-Authorization" header was given
+      return fn(null, false);
+    }
     var parsed = basicAuthParser(auth);
     debug('parsed "Proxy-Authorization": %j', parsed);
 
