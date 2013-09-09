@@ -382,7 +382,8 @@ function onconnect (req, socket, head) {
  */
 
 function authenticate (server, req, fn) {
-  if ('function' == typeof server.authenticate) {
+  if ('proxy-authorization' in req.headers &&
+      'function' == typeof server.authenticate) {
     debug.request('authenticating request "%s %s"', req.method, req.url);
     server.authenticate(req, fn);
   } else {
