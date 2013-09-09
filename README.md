@@ -56,6 +56,38 @@ server.listen(3128, function () {
 ```
 
 
+CLI Tool Examples
+-----------------
+
+The `proxy(1)` CLI tool can be used to spawn HTTP(s) proxy server instances with
+various options.
+
+#### Port to bind to
+
+Pass the `-p`/`--port` option to with a port number to specify a TCP port to
+bind to. Defaults to __3128__ if none is specified.
+
+``` bash
+$ proxy --port 8080
+```
+
+#### Custom `Proxy-Authenticate` command
+
+Pass the `-a`/`--authenticate` switch with a command to execute when the client
+`Proxy-Authorization` header is given. This command determines whether or not the
+request is authorized based on the "exit code" of the command.
+
+For example, to authorize "Basic" authentication with username "foo" and
+password "bar":
+
+``` bash
+$ proxy --authenticate 'if [ "$PROXY_AUTH_USERNAME" = "foo" ] && [ "$PROXY_AUTH_PASSWORD" = "bar" ]; \
+      then exit 0; \
+    fi; \
+    exit 1;'
+```
+
+
 License
 -------
 
