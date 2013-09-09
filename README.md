@@ -16,6 +16,7 @@ source HTTP proxy software:
  * [Squid][]
  * [Privoxy][]
  * [Apache][] with [`mod_proxy`][mod_proxy]
+ * [More…](wikipedia.org/wiki/Proxy_server#Web_proxy_servers)
 
 
 Installation
