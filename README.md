@@ -77,6 +77,10 @@ Pass the `-a`/`--authenticate` switch with a command to execute when the client
 `Proxy-Authorization` header is given. This command determines whether or not the
 request is authorized based on the "exit code" of the command.
 
+The relevant request authentication information is passed in as
+`PROXY_AUTH_USERNAME`, `PROXY_AUTH_PASSWORD` and `PROXY_AUTH_SCHEME` environment
+variables.
+
 For example, to authorize "Basic" authentication with username "foo" and
 password "bar":
 
