@@ -3,8 +3,9 @@ proxy
 ### An HTTP proxy written with Node.js (think Squid)
 [![Build Status](https://travis-ci.org/TooTallNate/proxy.png?branch=master)](https://travis-ci.org/TooTallNate/proxy)
 
-Proxy server...
+This module provides standard "HTTP proxy" logic.
 
+There is also a companion 
 
 Installation
 ------------
@@ -13,6 +14,13 @@ Install with `npm`:
 
 ``` bash
 $ npm install proxy
+```
+
+If you would like to have the `proxy(1)` CLI program in your $PATH, then install
+"globally":
+
+``` bash
+$ npm install -g proxy
 ```
 
 
