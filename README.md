@@ -10,6 +10,14 @@ below.
 There is also a companion `proxy(1)` CLI tool, which spawns an HTTP(s) proxy
 server with the specified options.
 
+You could think of `proxy(1)` as similar to some of the other popular open
+source HTTP proxy software:
+
+ * [Squid][]
+ * [Privoxy][]
+ * [Apache][] with [`mod_proxy`][mod_proxy]
+
+
 Installation
 ------------
 
@@ -46,6 +54,7 @@ server.listen(3128, function () {
 });
 ```
 
+
 License
 -------
 
@@ -71,3 +80,9 @@ IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
 CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+[Squid]: http://www.squid-cache.org/
+[Privoxy]: http://www.privoxy.org/
+[Apache]: http://www.apache.org/
+[mod_proxy]: http://httpd.apache.org/docs/current/mod/mod_proxy.html
