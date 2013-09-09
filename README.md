@@ -3,9 +3,12 @@ proxy
 ### An HTTP proxy written with Node.js (think Squid)
 [![Build Status](https://travis-ci.org/TooTallNate/proxy.png?branch=master)](https://travis-ci.org/TooTallNate/proxy)
 
-This module provides standard "HTTP proxy" logic.
+This module provides standard "HTTP proxy" logic. You can script your own server
+using the `proxy` server API. Be sure to take a look at the "Examples" section
+below.
 
-There is also a companion 
+There is also a companion `proxy(1)` CLI tool, which spawns an HTTP(s) proxy
+server with the specified options.
 
 Installation
 ------------
