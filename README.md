@@ -28,8 +28,8 @@ Install with `npm`:
 $ npm install proxy
 ```
 
-If you would like to have the `proxy(1)` CLI program in your $PATH, then install
-"globally":
+If you would like to have the `proxy(1)` CLI program in your `$PATH`, then
+install "globally":
 
 ``` bash
 $ npm install -g proxy
