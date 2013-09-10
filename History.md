@@ -1,3 +1,9 @@
+0.2.0 / 2013-09-10
+==================
+
+ - Fix calling the setup() function without any arguments
+ - Initial integration of "commander" for the `proxy(1)` program
+
 0.1.0 / 2013-09-09
 ==================
 
