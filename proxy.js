@@ -38,7 +38,7 @@ module.exports = setup;
  */
 
 function setup (server, options) {
-  if (!server) http.createServer();
+  if (!server) server = http.createServer();
   server.on('request', onrequest);
   server.on('connect', onconnect);
   return server;
