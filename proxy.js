@@ -294,6 +294,14 @@ function onconnect (req, socket, head) {
   // pause the socket during authentication so no data is lost
   socket.pause();
 
+  // called for the ServerResponse's "finish" event
+  function onfinish () {
+    debug.response('response "finish" event');
+    res.detachSocket(socket);
+    socket.end();
+  }
+  res.once('finish', onfinish);
+
   authenticate(this, req, function (err, auth) {
     socket.resume();
     if (err) {
@@ -314,6 +322,8 @@ function onconnect (req, socket, head) {
       debug.proxyResponse('proxy target %s "connect" event', req.url);
       debug.response('HTTP/1.1 200 Connection established');
       gotResponse = true;
+      res.removeListener('finish', onfinish);
+
       res.writeHead(200, 'Connection established');
 
       // HACK: force a flush of the HTTP header

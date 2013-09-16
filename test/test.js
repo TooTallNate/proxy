@@ -160,6 +160,27 @@ describe('proxy', function () {
       });
     });
 
+    it('should close the socket after a CONNECT request\'s 407 response status code', function (done) {
+      proxy.authenticate = function (req, fn) {
+        // reject everything
+        fn(null, false);
+      };
+      var gotData = false;
+      var socket = net.connect({ port: proxyPort });
+      socket.once('close', function () {
+        assert(gotData);
+        done();
+      });
+      socket.once('connect', function () {
+        socket.write('CONNECT 127.0.0.1:80 HTTP/1.1\r\n\r\n');
+      });
+      socket.setEncoding('utf8');
+      socket.once('data', function (data) {
+        assert(0 == data.indexOf('HTTP/1.1 407'));
+        gotData = true;
+      });
+    });
+
   });
 
 });
