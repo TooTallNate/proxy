@@ -295,6 +295,10 @@ function onconnect (req, socket, head) {
   socket.pause();
 
   // called for the ServerResponse's "finish" event
+  // XXX: normally, node's "http" module has a "finish" event listener that would
+  // take care of closing the socket once the HTTP response has completed, but
+  // since we're making this ServerResponse instance manually, that event handler
+  // never gets hooked up, so we must manually close the socket...
   function onfinish () {
     debug.response('response "finish" event');
     res.detachSocket(socket);
