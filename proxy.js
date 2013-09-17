@@ -238,13 +238,14 @@ function onrequest (req, res) {
       debug.proxyResponse('proxy HTTP request "error" event\n%s', err.stack || err);
       cleanup();
       if (gotResponse) {
-        // already sent a response to the original request...
-        // just destroy the socket
+        debug.response('already sent a response, just destroying the socket...');
         socket.destroy();
       } else if ('ENOTFOUND' == err.code) {
+        debug.response('HTTP/1.1 404 Not Found');
         res.writeHead(404);
         res.end();
       } else {
+        debug.response('HTTP/1.1 500 Internal Server Error');
         res.writeHead(500);
         res.end();
       }
