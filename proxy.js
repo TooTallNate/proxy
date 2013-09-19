@@ -283,17 +283,99 @@ function onconnect (req, socket, head) {
   debug.request('%s %s HTTP/%s ', req.method, req.url, req.httpVersion);
   assert(!head || 0 == head.length, '"head" should be empty for proxy requests');
 
+  var res;
+  var target;
+  var gotResponse = false;
+
+  // define request socket event listeners
+  function onclientclose (err) {
+    debug.request('HTTP request %s socket "close" event', req.url);
+  }
+  socket.on('close', onclientclose);
+
+  function onclientend () {
+    debug.request('HTTP request %s socket "end" event', req.url);
+    cleanup();
+  }
+
+  function onclienterror (err) {
+    debug.request('HTTP request %s socket "error" event:\n%s', req.url, err.stack || err);
+  }
+  socket.on('error', onclienterror);
+
+  // define target socket event listeners
+  function ontargetclose () {
+    debug.proxyResponse('proxy target %s "close" event', req.url);
+    cleanup();
+    socket.destroy();
+  }
+
+  function ontargetend () {
+    debug.proxyResponse('proxy target %s "end" event', req.url);
+    cleanup();
+  }
+
+  function ontargeterror (err) {
+    debug.proxyResponse('proxy target %s "error" event:\n%s', req.url, err.stack || err);
+    cleanup();
+    if (gotResponse) {
+      debug.response('already sent a response, just destroying the socket...');
+      socket.destroy();
+    } else if ('ENOTFOUND' == err.code) {
+      debug.response('HTTP/1.1 404 Not Found');
+      res.writeHead(404);
+      res.end();
+    } else {
+      debug.response('HTTP/1.1 500 Internal Server Error');
+      res.writeHead(500);
+      res.end();
+    }
+  }
+
+  function ontargetconnect () {
+    debug.proxyResponse('proxy target %s "connect" event', req.url);
+    debug.response('HTTP/1.1 200 Connection established');
+    gotResponse = true;
+    res.removeListener('finish', onfinish);
+
+    res.writeHead(200, 'Connection established');
+
+    // HACK: force a flush of the HTTP header
+    res._send('');
+
+    // relinquish control of the `socket` from the ServerResponse instance
+    res.detachSocket(socket);
+
+    // nullify the ServerResponse object, so that it can be cleaned
+    // up before this socket proxying is completed
+    res = null;
+
+    socket.pipe(target);
+    target.pipe(socket);
+  }
+
+  // cleans up event listeners for the `socket` and `target` sockets
+  function cleanup () {
+    debug.response('cleanup');
+    socket.removeListener('close', onclientclose);
+    socket.removeListener('error', onclienterror);
+    socket.removeListener('end', onclientend);
+    if (target) {
+      target.removeListener('connect', ontargetconnect);
+      target.removeListener('close', ontargetclose);
+      target.removeListener('error', ontargeterror);
+      target.removeListener('end', ontargetend);
+    }
+  }
+
   // create the `res` instance for this request since Node.js
   // doesn't provide us with one :(
   // XXX: this is undocumented API, so it will break some day (ノಠ益ಠ)ノ彡┻━┻
-  var res = new http.ServerResponse(req);
+  res = new http.ServerResponse(req);
   res.shouldKeepAlive = false;
   res.chunkedEncoding = false;
   res.useChunkedEncodingByDefault = false;
   res.assignSocket(socket);
-
-  // pause the socket during authentication so no data is lost
-  socket.pause();
 
   // called for the ServerResponse's "finish" event
   // XXX: normally, node's "http" module has a "finish" event listener that would
@@ -306,6 +388,9 @@ function onconnect (req, socket, head) {
     socket.end();
   }
   res.once('finish', onfinish);
+
+  // pause the socket during authentication so no data is lost
+  socket.pause();
 
   authenticate(this, req, function (err, auth) {
     socket.resume();
@@ -321,68 +406,13 @@ function onconnect (req, socket, head) {
     var host = parts[0];
     var port = +parts[1];
     var opts = { host: host, port: port };
-    var gotResponse = false;
 
-    function onconnect () {
-      debug.proxyResponse('proxy target %s "connect" event', req.url);
-      debug.response('HTTP/1.1 200 Connection established');
-      gotResponse = true;
-      res.removeListener('finish', onfinish);
-
-      res.writeHead(200, 'Connection established');
-
-      // HACK: force a flush of the HTTP header
-      res._send('');
-
-      // relinquish control of the `socket` from the ServerResponse instance
-      res.detachSocket(socket);
-
-      socket.pipe(destination);
-      destination.pipe(socket);
-    }
-
-    function onclose () {
-      debug.proxyResponse('proxy target %s "close" event', req.url);
-      cleanup();
-      socket.destroy();
-    }
-
-    function onend () {
-      debug.proxyResponse('proxy target %s "end" event', req.url);
-      cleanup();
-    }
-
-    function onerror (err) {
-      debug.proxyResponse('proxy target %s "error" event:\n%s', req.url, err.stack || err);
-      cleanup();
-      if (gotResponse) {
-        debug.response('already sent a response, just destroying the socket...');
-        socket.destroy();
-      } else if ('ENOTFOUND' == err.code) {
-        debug.response('HTTP/1.1 404 Not Found');
-        res.writeHead(404);
-        res.end();
-      } else {
-        debug.response('HTTP/1.1 500 Internal Server Error');
-        res.writeHead(500);
-        res.end();
-      }
-    }
-
-    function cleanup () {
-      debug.response('cleanup');
-      destination.removeListener('connect', onconnect);
-      destination.removeListener('close', onclose);
-      destination.removeListener('error', onerror);
-      destination.removeListener('end', onend);
-    }
-
-    debug.proxyRequest('connecting to proxy target %s', req.url);
-    var destination = net.connect(opts);
-    destination.on('connect', onconnect);
-    destination.on('close', onclose);
-    destination.on('error', onerror);
-    destination.on('end', onend);
+    debug.proxyRequest('connecting to proxy target %j', opts);
+    target = net.connect(opts);
+    target.on('connect', ontargetconnect);
+    target.on('close', ontargetclose);
+    target.on('error', ontargeterror);
+    target.on('end', ontargetend);
   });
 }
 
