@@ -124,7 +124,7 @@ function onrequest (req, res) {
       res.end((err.stack || err.message || err) + '\n');
       return;
     }
-    if (!auth) return requestAuthorization(req, res);;
+    if (!auth) return requestAuthorization(req, res);
     var parsed = url.parse(req.url);
 
     // proxy the request HTTP method
@@ -400,7 +400,7 @@ function onconnect (req, socket, head) {
       res.end((err.stack || err.message || err) + '\n');
       return;
     }
-    if (!auth) return requestAuthorization(req, res);;
+    if (!auth) return requestAuthorization(req, res);
 
     var parts = req.url.split(':');
     var host = parts[0];
