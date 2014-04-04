@@ -1,4 +1,9 @@
 
+0.2.3 / 2014-04-04
+==================
+
+  * package: update "mocha", remove from dependencies
+
 0.2.2 / 2014-04-03
 ==================
 
