@@ -1,4 +1,13 @@
 
+0.2.2 / 2014-04-03
+==================
+
+  * History: match `git changelog` styling
+  * package: update outdated deps
+  * proxy: remove double semicolon
+  * proxy: refactor to make the named functions be top-level
+  * proxy: add a few debug() calls
+
 0.2.1 / 2013-09-16
 ==================
 
