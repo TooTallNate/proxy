@@ -28,8 +28,9 @@
   "license": "MIT",
   "dependencies": {
     "basic-auth-parser": "0.0.2",
-    "commander": "2.0.0",
-    "debug": "0.7.2"
+    "commander": "2.2.0",
+    "debug": "0.8.0",
+    "mocha": "1.18.2"
   },
   "devDependencies": {
     "mocha": "~1.12.1"
