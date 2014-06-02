@@ -39,6 +39,7 @@ module.exports = setup;
 
 function setup (server, options) {
   if (!server) server = http.createServer();
+  this.options = options || {};
   server.on('request', onrequest);
   server.on('connect', onconnect);
   return server;
@@ -202,6 +203,11 @@ function onrequest (req, res) {
       res.writeHead(400);
       res.end('Only "http:" protocol prefix is supported\n');
       return;
+    }
+
+    if (this.options.localAddress) {
+      // pass `localAddress` from options to request
+      parsed.localAddress = this.options.localAddress;
     }
 
     var gotResponse = false;
