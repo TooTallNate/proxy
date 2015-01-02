@@ -10,22 +10,47 @@ var http = require('http');
 var https = require('https');
 var assert = require('assert');
 var setup = require('../');
-
+var stream = require('stream');
 
 describe('proxy', function () {
 
   var proxy;
   var proxyPort;
 
+  var transformProxy;
+  var transformProxyPort;
+  var responseStream = new stream.PassThrough();
+  var requestStream = new stream.PassThrough();
+
   var server;
   var serverPort;
 
   before(function (done) {
-    // setup proxy server
-    proxy = setup(http.createServer());
-    proxy.listen(function () {
-      proxyPort = proxy.address().port;
-      done();
+    // plain old proxy.
+    function createProxy(cb) {
+      proxy = setup(http.createServer());
+      proxy.listen(function () {
+        proxyPort = proxy.address().port;
+        return cb();
+      });
+    }
+
+    // proxy that transforms HTTP stream.
+    function createTransformProxy(cb) {
+      transformProxy = setup(http.createServer(), {
+        transformResponse: responseStream,
+        transformRequest: requestStream
+      });
+      transformProxy.listen(function () {
+        transformProxyPort = transformProxy.address().port;
+        return cb();
+      });
+    }
+
+    createProxy(function() {
+      createTransformProxy(function() {
+        return done();
+      });
     });
   });
 
@@ -41,6 +66,11 @@ describe('proxy', function () {
   after(function (done) {
     proxy.once('close', function () { done(); });
     proxy.close();
+  });
+
+  after(function (done) {
+    transformProxy.once('close', function () { done(); });
+    transformProxy.close();
   });
 
   after(function (done) {
@@ -84,6 +114,33 @@ describe('proxy', function () {
     });
   });
 
+  it('should allow the request and response streams to be transformed', function (done) {
+    var host = '127.0.0.1:' + serverPort;
+    server.once('request', function (req, res) {
+      res.end();
+    });
+
+    var socket = net.connect({ port: transformProxyPort });
+    socket.once('close', function () {
+      assert(requestStream._writableState.ended);
+      assert(responseStream._writableState.ended);
+      done();
+    });
+    socket.once('connect', function () {
+      socket.write(
+        'GET http://' + host + '/ HTTP/1.1\r\n' +
+        'User-Agent: curl/7.30.0\r\n' +
+        'Host: ' + host + '\r\n' +
+        'Accept: */*\r\n' +
+        'Proxy-Connection: Keep-Alive\r\n' +
+        '\r\n');
+    });
+    socket.setEncoding('utf8');
+    socket.once('data', function (data) {
+      socket.destroy();
+    });
+  });
+
   it('should establish connection for CONNECT requests', function (done) {
     var gotData = false;
     var socket = net.connect({ port: proxyPort });
@@ -107,7 +164,6 @@ describe('proxy', function () {
       socket.destroy();
     });
   });
-
 
   describe('authentication', function () {
     function clearAuth () {
