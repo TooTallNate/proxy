@@ -46,7 +46,9 @@ function setup (server, options) {
     onrequest.call(server, req, res, options);
   });
 
-  server.on('connect', onconnect);
+  server.on('connect', function(req, socket, head) {
+    onconnect.call(server, req, socket, head, options);
+  });
 
   return server;
 }
@@ -116,6 +118,7 @@ function eachHeader (obj, fn) {
  */
 
 function onrequest (req, res, options) {
+
   debug.request('%s %s HTTP/%s ', req.method, req.url, req.httpVersion);
   var server = this;
   var socket = req.socket;
@@ -239,7 +242,7 @@ function onrequest (req, res, options) {
       debug.response('HTTP/1.1 %s', proxyRes.statusCode);
       res.writeHead(proxyRes.statusCode, headers);
 
-      if (options.transformResponse) proxyRes = proxyRes.pipe(options.transformResponse);
+      if (options.transformResponse) proxyRes = proxyRes.pipe(options.transformResponse());
       proxyRes.pipe(res);
 
       res.on('finish', onfinish);
@@ -281,7 +284,7 @@ function onrequest (req, res, options) {
       res.removeListener('finish', onfinish);
     }
 
-    if (options.transformRequest) req = req.pipe(options.transformRequest);
+    if (options.transformRequest) req = req.pipe(options.transformRequest());
     req.pipe(proxyReq);
   });
 }
@@ -290,11 +293,12 @@ function onrequest (req, res, options) {
  * HTTP CONNECT proxy requests.
  */
 
-function onconnect (req, socket, head) {
+function onconnect (req, socket, head, options) {
   debug.request('%s %s HTTP/%s ', req.method, req.url, req.httpVersion);
   assert(!head || 0 == head.length, '"head" should be empty for proxy requests');
 
   var res;
+  var ssocket = false;
   var target;
   var gotResponse = false;
 
@@ -361,7 +365,11 @@ function onconnect (req, socket, head) {
     // up before this socket proxying is completed
     res = null;
 
-    socket.pipe(target);
+    ssocket = socket;
+    if (options.transformRequest) ssocket = socket.pipe(options.transformRequest());
+    ssocket.pipe(target);
+
+    if (options.transformResponse) target = target.pipe(options.transformResponse());
     target.pipe(socket);
   }
 

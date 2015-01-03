@@ -38,8 +38,12 @@ describe('proxy', function () {
     // proxy that transforms HTTP stream.
     function createTransformProxy(cb) {
       transformProxy = setup(http.createServer(), {
-        transformResponse: responseStream,
-        transformRequest: requestStream
+        transformResponse: function() {
+          return responseStream;
+        },
+        transformRequest: function() {
+          return requestStream;
+        }
       });
       transformProxy.listen(function () {
         transformProxyPort = transformProxy.address().port;
