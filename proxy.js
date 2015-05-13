@@ -125,7 +125,11 @@ function onrequest (req, res) {
       return;
     }
     if (!auth) return requestAuthorization(req, res);
-    var parsed = url.parse(req.url);
+    
+    var parsed = /^https?:/.test(req.url)
+               ? url.parse(req.url)
+               : url.parse( "http://"+req.headers['host']+req.url );
+
 
     // proxy the request HTTP method
     parsed.method = req.method;
