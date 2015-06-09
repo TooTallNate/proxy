@@ -8,12 +8,14 @@ var url = require('url');
 var http = require('http');
 var assert = require('assert');
 var debug = require('debug')('proxy');
+var Socks = require('socks');
 
 // log levels
 debug.request = require('debug')('proxy ← ← ←');
 debug.response = require('debug')('proxy → → →');
 debug.proxyRequest = require('debug')('proxy ↑ ↑ ↑');
 debug.proxyResponse = require('debug')('proxy ↓ ↓ ↓');
+debug.socksAgent = require('debug')('socks proxy agent ');
 
 // hostname
 var hostname = require('os').hostname();
@@ -25,7 +27,9 @@ var version  = require('./package.json').version;
  * Module exports.
  */
 
-module.exports = setup;
+module.exports   = setup;
+//other optaions 
+var sOptions     = {};
 
 /**
  * Sets up an `http.Server` or `https.Server` instance with the necessary
@@ -41,6 +45,8 @@ function setup (server, options) {
   if (!server) server = http.createServer();
   server.on('request', onrequest);
   server.on('connect', onconnect);
+  //add other options
+  sOptions = options;
   return server;
 }
 
@@ -189,6 +195,11 @@ function onrequest (req, res) {
 
     // custom `http.Agent` support, set `server.agent`
     var agent = server.agent;
+    if( sOptions.socks ) {
+        agent = getSocksAgent( sOptions.socks, {
+            "https" : parsed.protocol == 'https:' ? true : false
+        });
+    }
     if (null != agent) {
       debug.proxyRequest('setting custom `http.Agent` option for proxy request: %s', agent);
       parsed.agent = agent;
@@ -459,4 +470,28 @@ function requestAuthorization (req, res) {
   };
   res.writeHead(407, headers);
   res.end();
+}
+/**
+ * socks proxy agent 
+ * @param  socksUri socks[4,5]://host:port
+ * @param {http.ServerRequest} options
+ * @api private
+ */
+function getSocksAgent ( socksUri, options ) {
+    var socksUri  = url.parse( socksUri );
+    var socksType = parseInt( socksUri.protocol.replace(/socks|:/ig, '' ) ) || 5;
+    if( socksUri.hostname && socksUri.port ) {
+        debug.socksAgent( socksType );
+        return agent     = new Socks.Agent({
+            proxy: {
+                ipaddress : socksUri.hostname,
+                port      : socksUri.port,
+                type      : socksType,
+            }
+        },
+        options && options.https ? true : false, // https?
+        false // rejectUnauthorized option passed to tls.connect(). Only when secure is set to true 
+        );
+    }
+    return null;
 }
