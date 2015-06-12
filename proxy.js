@@ -44,7 +44,7 @@ var sOptions     = {};
 function setup (server, options) {
   if (!server) server = http.createServer();
   server.on('request', onrequest);
-  server.on('connect', onconnect);
+  //server.on('connect', onconnect);
   //add other options
   sOptions = options;
   return server;
