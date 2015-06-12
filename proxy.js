@@ -44,7 +44,7 @@ var sOptions     = {};
 function setup (server, options) {
   if (!server) server = http.createServer();
   server.on('request', onrequest);
-  //server.on('connect', onconnect);
+  server.on('connect', onconnect);
   //add other options
   sOptions = options;
   return server;
@@ -423,11 +423,43 @@ function onconnect (req, socket, head) {
     var opts = { host: host, port: port };
 
     debug.proxyRequest('connecting to proxy target %j', opts);
-    target = net.connect(opts);
-    target.on('connect', ontargetconnect);
-    target.on('close', ontargetclose);
-    target.on('error', ontargeterror);
-    target.on('end', ontargetend);
+    var sproxy = {};
+    function targetEvents( target ){
+        target.on('close', ontargetclose);
+        target.on('error', ontargeterror);
+        target.on('end', ontargetend);
+    }
+    //support upstream socks proxy
+    if( sOptions.socks && ( sproxy = parseSocksUri(sOptions.socks))) {
+        var options = {
+            proxy   : sproxy,
+            target  : opts,
+            command : 'connect'
+        }
+        Socks.createConnection(options, function(err, socket, info) {
+            if (err){
+                ontargeterror(err);
+            } else {
+                target = socket;
+                /*
+                // Connection has been established, we can start sending data now:
+                socket.write("GET / HTTP/1.1\nHost: google.com\n\n");
+                socket.on('data', function(data) {
+                    console.log(data.length);
+                    console.log(data);
+                });
+                */
+                targetEvents(target);
+                ontargetconnect();
+                socket.resume();
+            }
+        });
+    } else {
+        target = net.connect(opts);
+        target.on('connect', ontargetconnect);
+        targetEvents(target);
+    }
+
   });
 }
 
@@ -471,6 +503,22 @@ function requestAuthorization (req, res) {
   res.writeHead(407, headers);
   res.end();
 }
+
+/**
+ * socksuri parser
+ * @param  socksUri socks[4,5]://host:port
+ * @ret socks.options.proxy 
+ */
+function parseSocksUri ( socksUri ) {
+    var socksUri  = url.parse( socksUri );
+    var socksType = parseInt( socksUri.protocol.replace(/socks|:/ig, '' ) ) || 5;
+    return {
+        ipaddress : socksUri.hostname,
+        port      : socksUri.port,
+        type      : socksType
+    };
+}
+
 /**
  * socks proxy agent 
  * @param  socksUri socks[4,5]://host:port
@@ -478,19 +526,14 @@ function requestAuthorization (req, res) {
  * @api private
  */
 function getSocksAgent ( socksUri, options ) {
-    var socksUri  = url.parse( socksUri );
-    var socksType = parseInt( socksUri.protocol.replace(/socks|:/ig, '' ) ) || 5;
-    if( socksUri.hostname && socksUri.port ) {
-        debug.socksAgent( socksType );
+    var socksServ = parseSocksUri( socksUri );
+    if( socksServ.ipaddress && socksServ.port ) {
+        debug.socksAgent( socksServ.type );
         return agent     = new Socks.Agent({
-            proxy: {
-                ipaddress : socksUri.hostname,
-                port      : socksUri.port,
-                type      : socksType,
-            }
-        },
-        options && options.https ? true : false, // https?
-        false // rejectUnauthorized option passed to tls.connect(). Only when secure is set to true 
+            proxy: socksServ
+        }
+        , options && options.https ? true : false // https?
+        , false // rejectUnauthorized option passed to tls.connect(). Only when secure is set to true 
         );
     }
     return null;
