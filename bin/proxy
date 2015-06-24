@@ -13,6 +13,7 @@ program
   .version(version)
   .option('-p, --port <n>', 'TCP port number to bind to. Defaults to 3128', 3128, Number)
   .option('-a, --authenticate <command>', '"authenticate" command to run when "Proxy-Authorization" is given')
+  .option('-s, --socks [socksServer]', 'upstream socks proxy server,eg socks[4,4a,5]//127.0.0.1:1080')
   .parse(process.argv);
 
 var http = require('http');
@@ -26,7 +27,9 @@ var basicAuthParser = require('basic-auth-parser');
  */
 
 var proxy = http.createServer();
-setup(proxy);
+setup(proxy, {
+    socks : program.socks
+});
 
 /**
  * Outbound proxy requests will use `agent: false`.
