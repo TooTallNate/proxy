@@ -1,4 +1,11 @@
 
+0.2.4 / 2016-01-18
+==================
+
+  * travis: test node v0.8, v0.10, and v0.12, v1, v2, v3, v4, and v5
+  * README: use SVG for Travis-CI badge
+  * package: update all the deps
+
 0.2.3 / 2014-04-04
 ==================
 
