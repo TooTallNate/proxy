@@ -26,6 +26,7 @@ var version  = require('./package.json').version;
  */
 
 module.exports = setup;
+var sOptions = {};
 
 /**
  * Sets up an `http.Server` or `https.Server` instance with the necessary
@@ -41,6 +42,7 @@ function setup (server, options) {
   if (!server) server = http.createServer();
   server.on('request', onrequest);
   server.on('connect', onconnect);
+  sOptions = options
   return server;
 }
 
@@ -202,6 +204,11 @@ function onrequest (req, res) {
       res.writeHead(400);
       res.end('Only "http:" protocol prefix is supported\n');
       return;
+    }
+
+    if (null != sOptions.localAddress) {
+      // set local address for parsed args
+      parsed.localAddress = sOptions.localAddress
     }
 
     var gotResponse = false;
