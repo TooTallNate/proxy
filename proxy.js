@@ -208,7 +208,10 @@ function onrequest (req, res) {
 
     if (null != sOptions.localAddress) {
       // set local address for parsed args
-      parsed.localAddress = sOptions.localAddress
+      _localAddress = sOptions.localAddress
+      _addr = ( typeof _localAddress === 'function' ) ? _localAddress() : _localAddress
+      console.log('use addr %s', _addr)
+      parsed.localAddress = _addr
     }
 
     var gotResponse = false;
