@@ -8,6 +8,8 @@ var url = require('url');
 var http = require('http');
 var assert = require('assert');
 var debug = require('debug')('proxy');
+var throttle = require('throttle');
+var throttleRate = 76800;
 
 // log levels
 debug.request = require('debug')('proxy ← ← ←');
@@ -231,7 +233,7 @@ function onrequest (req, res) {
 
       debug.response('HTTP/1.1 %s', proxyRes.statusCode);
       res.writeHead(proxyRes.statusCode, headers);
-      proxyRes.pipe(res);
+      proxyRes.pipe(new throttle({bps: throttleRate})).pipe(res);
       res.on('finish', onfinish);
     });
     proxyReq.on('error', function (err) {
@@ -271,7 +273,7 @@ function onrequest (req, res) {
       res.removeListener('finish', onfinish);
     }
 
-    req.pipe(proxyReq);
+    req.pipe(new throttle({bps: throttleRate})).pipe(proxyReq);
   });
 }
 
@@ -350,8 +352,8 @@ function onconnect (req, socket, head) {
     // up before this socket proxying is completed
     res = null;
 
-    socket.pipe(target);
-    target.pipe(socket);
+    socket.pipe(new throttle({bps: throttleRate})).pipe(target);
+    target.pipe(new throttle({bps: throttleRate})).pipe(socket);
   }
 
   // cleans up event listeners for the `socket` and `target` sockets
