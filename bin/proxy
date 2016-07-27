@@ -13,6 +13,7 @@ program
   .version(version)
   .option('-p, --port <n>', 'TCP port number to bind to. Defaults to 3128', 3128, Number)
   .option('-a, --authenticate <command>', '"authenticate" command to run when "Proxy-Authorization" is given')
+  .option('-l, --local-address <ip>', 'IP address of the network interface to send the outgoing requests through')
   .parse(process.argv);
 
 var http = require('http');
@@ -34,6 +35,12 @@ setup(proxy);
 
 debug('setting outbound proxy request\'s `agent` to `false`');
 proxy.agent = false;
+
+/**
+ * Proxy outgoing request localAddress parameter
+ */
+
+if (program.localAddress) proxy.localAddress = program.localAddress;
 
 /**
  * Proxy authenticate function.

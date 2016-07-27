@@ -203,6 +203,8 @@ function onrequest (req, res) {
       res.end('Only "http:" protocol prefix is supported\n');
       return;
     }
+    
+    if (server.localAddress) parsed.localAddress = server.localAddress;
 
     var gotResponse = false;
     var proxyReq = http.request(parsed);

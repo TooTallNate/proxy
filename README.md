@@ -93,6 +93,15 @@ $ proxy --authenticate 'if \
     exit 1;'
 ```
 
+#### Custom outgoing interface
+
+Pass the `-l`/`--local-address` argument with an IP address of the network
+interface to send the outgoing requests through. It is the equivalent of setting
+a `localAddress` field in the options when calling `http.request()`.
+
+``` bash
+$ proxy --local-address 192.168.0.10
+```
 
 License
 -------
