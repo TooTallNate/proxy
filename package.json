@@ -4,9 +4,10 @@
   "description": "An HTTP proxy written with Node.js (think Squid)",
   "main": "proxy.js",
   "scripts": {
-    "test": "mocha --reporter spec"
+    "test": "mocha --reporter spec",
+    "start": "node ./bin/proxy.js"
   },
-  "bin": "./bin/proxy",
+  "bin": "./bin/proxy.js",
   "keywords": [
     "http",
     "https",
