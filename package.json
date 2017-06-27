@@ -29,10 +29,11 @@
   "license": "MIT",
   "dependencies": {
     "basic-auth-parser": "0.0.2",
-    "commander": "2.9.0",
-    "debug": "2.2.0"
+    "commander": "2.10.0",
+    "debug": "2.6.8"
   },
   "devDependencies": {
-    "mocha": "2.2.5"
+    "mocha": "3.4.2",
+    "pkg": "4.1.1"
   }
 }
