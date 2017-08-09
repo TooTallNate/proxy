@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "mocha": "3.4.2",
-    "pkg": "4.1.1"
+    "pkg": "4.2.2"
   },
   "pkg": {
     "targets": [
