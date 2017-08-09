@@ -6,26 +6,27 @@ process.title = 'proxy';
  * Module dependencies.
  */
 
-var program = require('commander');
-var version = require('../package.json').version;
+const args = require('args');
+const pkg = require('../package');
 
-program
-  .version(version)
-  .option('-p, --port <n>', 'TCP port number to bind to. Defaults to 3128', 3128, Number)
-  .option('-a, --authenticate <command>', '"authenticate" command to run when "Proxy-Authorization" is given')
-  .parse(process.argv);
+args
+  .option('port', 'Port number to the proxy server should bind to', 3128, parseInt)
+  .option('authenticate', '"authenticate" command to run when the "Proxy-Authorization" header is sent', '', String);
 
-var http = require('http');
-var setup = require('../');
-var debug = require('debug')('proxy');
-var spawn = require('child_process').spawn;
-var basicAuthParser = require('basic-auth-parser');
+const flags = args.parse(process.argv, { name: pkg.name });
+const { port, authenticate } = flags;
+
+const http = require('http');
+const setup = require('../');
+const debug = require('debug')('proxy');
+const spawn = require('child_process').spawn;
+const basicAuthParser = require('basic-auth-parser');
 
 /**
  * Setup the HTTP "proxy server" instance.
  */
 
-var proxy = http.createServer();
+const proxy = http.createServer();
 setup(proxy);
 
 /**
@@ -39,10 +40,10 @@ proxy.agent = false;
  * Proxy authenticate function.
  */
 
-if (program.authenticate) {
-  debug('setting `authenticate()` function for: "%s"', program.authenticate);
+if (authenticate) {
+  debug('setting `authenticate()` function for: "%s"', authenticate);
   proxy.authenticate = function (req, fn) {
-    debug('authenticate(): "%s"', program.authenticate);
+    debug('authenticate(): "%s"', authenticate);
 
     // parse the "Proxy-Authorization" header
     var auth = req.headers['proxy-authorization'];
@@ -70,8 +71,8 @@ if (program.authenticate) {
     opts.stdio = [ 'ignore', 1, 2 ];
     opts.env = env;
 
-    var args = [ '-c', program.authenticate ];
-    // TODO: add Windows support
+    var args = [ '-c', authenticate ];
+    // TODO: add Windows support (use `cross-spawn`?)
     var child = spawn('/bin/sh', args, opts);
 
     function onerror (err) {
@@ -94,6 +95,6 @@ if (program.authenticate) {
  * Bind to port.
  */
 
-proxy.listen(program.port, function () {
+proxy.listen(port, function () {
   console.log('HTTP(s) proxy server listening on port %d', this.address().port);
 });

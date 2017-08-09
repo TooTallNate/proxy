@@ -28,8 +28,8 @@
   },
   "license": "MIT",
   "dependencies": {
+    "args": "3.0.2",
     "basic-auth-parser": "0.0.2",
-    "commander": "2.10.0",
     "debug": "2.6.8"
   },
   "devDependencies": {
