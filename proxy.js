@@ -8,6 +8,7 @@ var url = require('url');
 var http = require('http');
 var assert = require('assert');
 var debug = require('debug')('proxy');
+var options = {};
 
 // log levels
 debug.request = require('debug')('proxy ← ← ←');
@@ -38,9 +39,17 @@ module.exports = setup;
  */
 
 function setup (server, options) {
+  if (!options) options = {};
   if (!server) server = http.createServer();
-  server.on('request', onrequest);
-  server.on('connect', onconnect);
+
+  server.on('request', function(req, res) {
+    onrequest.call(server, req, res, options);
+  });
+
+  server.on('connect', function(req, socket, head) {
+    onconnect.call(server, req, socket, head, options);
+  });
+
   return server;
 }
 
@@ -108,7 +117,8 @@ function eachHeader (obj, fn) {
  * HTTP GET/POST/DELETE/PUT, etc. proxy requests.
  */
 
-function onrequest (req, res) {
+function onrequest (req, res, options) {
+
   debug.request('%s %s HTTP/%s ', req.method, req.url, req.httpVersion);
   var server = this;
   var socket = req.socket;
@@ -231,7 +241,10 @@ function onrequest (req, res) {
 
       debug.response('HTTP/1.1 %s', proxyRes.statusCode);
       res.writeHead(proxyRes.statusCode, headers);
+
+      if (options.transformResponse) proxyRes = proxyRes.pipe(options.transformResponse());
       proxyRes.pipe(res);
+
       res.on('finish', onfinish);
     });
     proxyReq.on('error', function (err) {
@@ -271,6 +284,7 @@ function onrequest (req, res) {
       res.removeListener('finish', onfinish);
     }
 
+    if (options.transformRequest) req = req.pipe(options.transformRequest());
     req.pipe(proxyReq);
   });
 }
@@ -279,11 +293,12 @@ function onrequest (req, res) {
  * HTTP CONNECT proxy requests.
  */
 
-function onconnect (req, socket, head) {
+function onconnect (req, socket, head, options) {
   debug.request('%s %s HTTP/%s ', req.method, req.url, req.httpVersion);
   assert(!head || 0 == head.length, '"head" should be empty for proxy requests');
 
   var res;
+  var ssocket = false;
   var target;
   var gotResponse = false;
 
@@ -350,7 +365,11 @@ function onconnect (req, socket, head) {
     // up before this socket proxying is completed
     res = null;
 
-    socket.pipe(target);
+    ssocket = socket;
+    if (options.transformRequest) ssocket = socket.pipe(options.transformRequest());
+    ssocket.pipe(target);
+
+    if (options.transformResponse) target = target.pipe(options.transformResponse());
     target.pipe(socket);
   }
 
