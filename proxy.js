@@ -109,6 +109,9 @@ function eachHeader (obj, fn) {
  */
 
 function onrequest (req, res) {
+  var self = this;
+  self.emit('proxyRequest', req);
+
   debug.request('%s %s HTTP/%s ', req.method, req.url, req.httpVersion);
   var server = this;
   var socket = req.socket;
@@ -209,6 +212,7 @@ function onrequest (req, res) {
     debug.proxyRequest('%s %s HTTP/1.1 ', proxyReq.method, proxyReq.path);
 
     proxyReq.on('response', function (proxyRes) {
+      self.emit('proxyResponse', req, proxyRes);
       debug.proxyResponse('HTTP/1.1 %s', proxyRes.statusCode);
       gotResponse = true;
 
