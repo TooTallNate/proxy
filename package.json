@@ -30,7 +30,7 @@
   "dependencies": {
     "args": "3.0.2",
     "basic-auth-parser": "0.0.2",
-    "debug": "^4.1.0"
+    "debug": "^3.2.6"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
