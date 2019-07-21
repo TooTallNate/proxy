@@ -349,6 +349,7 @@ function onconnect (req, socket, head) {
     res = null;
 
     socket.pipe(target);
+    target.once('unpipe', resume);
     target.pipe(socket);
   }
 
@@ -412,6 +413,17 @@ function onconnect (req, socket, head) {
     target.on('error', ontargeterror);
     target.on('end', ontargetend);
   });
+}
+
+/**
+ * Resumes a socket.
+ *
+ * @param {(net.Socket|tls.Socket)} socket The socket to resume
+ * @api private
+ */
+
+function resume (socket) {
+  socket.resume();
 }
 
 /**
