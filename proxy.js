@@ -339,9 +339,7 @@ function onconnect (req, socket, head) {
     res.removeListener('finish', onfinish);
 
     res.writeHead(200, 'Connection established');
-
-    // HACK: force a flush of the HTTP header
-    res._send('');
+    res.flushHeaders();
 
     // relinquish control of the `socket` from the ServerResponse instance
     res.detachSocket(socket);
