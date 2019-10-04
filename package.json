@@ -30,11 +30,11 @@
   "dependencies": {
     "args": "3.0.2",
     "basic-auth-parser": "0.0.2",
-    "debug": "2.6.8"
+    "debug": "^3.2.6"
   },
   "devDependencies": {
-    "mocha": "3.4.2",
-    "pkg": "4.2.2"
+    "mocha": "^5.2.0",
+    "pkg": "^4.3.5"
   },
   "pkg": {
     "targets": [
