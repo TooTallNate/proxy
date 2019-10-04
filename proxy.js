@@ -204,6 +204,10 @@ function onrequest (req, res) {
       return;
     }
 
+    if (server.localAddress) {
+      parsed.localAddress = server.localAddress;
+    }
+
     var gotResponse = false;
     var proxyReq = http.request(parsed);
     debug.proxyRequest('%s %s HTTP/1.1 ', proxyReq.method, proxyReq.path);

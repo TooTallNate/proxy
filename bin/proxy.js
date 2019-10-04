@@ -11,7 +11,8 @@ const pkg = require('../package');
 
 args
   .option('port', 'Port number to the proxy server should bind to', 3128, parseInt)
-  .option('authenticate', '"authenticate" command to run when the "Proxy-Authorization" header is sent', '', String);
+  .option('authenticate', '"authenticate" command to run when the "Proxy-Authorization" header is sent', '', String)
+  .option('local-address', 'IP address of the network interface to send the outgoing requests through', '', String)
 
 const flags = args.parse(process.argv, { name: pkg.name });
 const { port, authenticate } = flags;
@@ -35,6 +36,14 @@ setup(proxy);
 
 debug('setting outbound proxy request\'s `agent` to `false`');
 proxy.agent = false;
+
+/**
+ * Proxy outgoing request localAddress parameter
+ */
+
+if (flags.localAddress) {
+  proxy.localAddress = flags.localAddress;
+}
 
 /**
  * Proxy authenticate function.
