@@ -292,36 +292,30 @@ function onconnect (req, socket, head) {
   var gotResponse = false;
 
   // define request socket event listeners
-  function onclientclose (err) {
+  socket.on('close', function onclientclose () {
     debug.request('HTTP request %s socket "close" event', req.url);
-  }
-  socket.on('close', onclientclose);
+  });
 
-  function onclientend () {
+  socket.on('end', function onclientend () {
     debug.request('HTTP request %s socket "end" event', req.url);
-    cleanup();
-  }
+  });
 
-  function onclienterror (err) {
+  socket.on('error', function onclienterror (err) {
     debug.request('HTTP request %s socket "error" event:\n%s', req.url, err.stack || err);
-  }
-  socket.on('error', onclienterror);
+  });
 
   // define target socket event listeners
   function ontargetclose () {
     debug.proxyResponse('proxy target %s "close" event', req.url);
-    cleanup();
     socket.destroy();
   }
 
   function ontargetend () {
     debug.proxyResponse('proxy target %s "end" event', req.url);
-    cleanup();
   }
 
   function ontargeterror (err) {
     debug.proxyResponse('proxy target %s "error" event:\n%s', req.url, err.stack || err);
-    cleanup();
     if (gotResponse) {
       debug.response('already sent a response, just destroying the socket...');
       socket.destroy();
@@ -355,20 +349,6 @@ function onconnect (req, socket, head) {
     socket.pipe(target);
     target.once('unpipe', resume);
     target.pipe(socket);
-  }
-
-  // cleans up event listeners for the `socket` and `target` sockets
-  function cleanup () {
-    debug.response('cleanup');
-    socket.removeListener('close', onclientclose);
-    socket.removeListener('error', onclienterror);
-    socket.removeListener('end', onclientend);
-    if (target) {
-      target.removeListener('connect', ontargetconnect);
-      target.removeListener('close', ontargetclose);
-      target.removeListener('error', ontargeterror);
-      target.removeListener('end', ontargetend);
-    }
   }
 
   // create the `res` instance for this request since Node.js
