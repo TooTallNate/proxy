@@ -108,49 +108,6 @@ describe('proxy', function () {
     });
   });
 
-  it('should resume the client socket when it is unpiped', function (done) {
-    server.once('request', function (req, res) {
-      res.end();
-    });
-
-    var gotData = false;
-    var host = '127.0.0.1:' + serverPort;
-    var socket = net.connect({ port: proxyPort });
-
-    socket.on('connect', function () {
-      socket.write(
-        'CONNECT ' + host + ' HTTP/1.1\r\n' +
-        'Host: ' + host + '\r\n' +
-        '\r\n'
-      );
-    });
-
-    socket.on('close', function () {
-      assert(gotData);
-      done();
-    });
-
-    socket.setEncoding('utf8');
-    socket.once('data', function (data) {
-      assert(0 == data.indexOf('HTTP/1.1 200 Connection established\r\n'));
-
-      socket.write(
-        'POST / HTTP/1.1\r\n' +
-        'Host: ' + host + '\r\n' +
-        'Connection: close\r\n' +
-        'Transfer-Encoding: chunked\r\n' +
-        '\r\n'
-      );
-
-      socket.once('data', function (data) {
-        assert(0 == data.indexOf('HTTP/1.1 200 OK\r\n'));
-        gotData = true;
-        socket.write('10\r\n{ "foo": "bar",\r\n');
-      });
-    });
-  });
-
-
   describe('authentication', function () {
     function clearAuth () {
       delete proxy.authenticate;
