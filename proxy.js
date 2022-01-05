@@ -318,6 +318,7 @@ function onconnect(req, socket, head) {
 	var res;
 	var target;
 	var gotResponse = false;
+	var server = this;
 
 	// define request socket event listeners
 	socket.on('close', function onclientclose() {
@@ -427,6 +428,10 @@ function onconnect(req, socket, head) {
 		var port = +parts[1];
 		var opts = { host: host, port: port };
 
+		if (server.localAddress) {
+			opts.localAddress = server.localAddress;
+		}
+		
 		debug.proxyRequest('connecting to proxy target %j', opts);
 		target = net.connect(opts);
 		target.on('connect', ontargetconnect);
